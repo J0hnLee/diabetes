@@ -1,0 +1,25 @@
+version: "3.9"
+
+services:
+  app:
+    build:
+    # use the current directory as the build context  
+      context: .
+      args:
+        - DEV=true
+    ports:
+      - 8040:8040
+    volumes:
+      - ./app:/app
+      #- dev-static-data:/vol/web
+
+    # command: >
+    #    "uvicorn demo:app --reload"
+    environment:
+      - DB_HOST=db
+      - DB_NAME=devdb
+      - DB_USER=devuser
+      - DB_PASS=changeme
+    
+
+  
