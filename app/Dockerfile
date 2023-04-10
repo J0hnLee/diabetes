@@ -11,7 +11,7 @@ COPY ./requirements.txt /code/requirements.txt
 RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 
 # 
-COPY ./app /code/app
+COPY . /code
 
 # 
-CMD ["uvicorn", "app.demo:app", "--host", "0.0.0.0", "--port", "8040"]
+CMD ["uvicorn", "demo:app", "--host", "0.0.0.0", "--port", "8040","--reload" ]

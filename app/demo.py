@@ -1,31 +1,18 @@
 from typing import Union
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 import redis
 from pydantic import BaseModel
 from typing import Optional, List
 from uuid import uuid4
-
+from typing import List
+from models import Citizen, BloodSugarRecord, BloodSugarSearch
 
 app = FastAPI()
 redis_client = redis.Redis(host='redis', port=6379)
 
 
-class UserInfo(BaseModel):
-    id: str
-    name: str
-    phone: str
-    line_id: Optional[str] = None
-
-
-class BloodSugarRecord(BaseModel):
-    user_id: str
-    blood_sugar: float
-    timestamp: str
-    meal_status: str
-
-
-user_data = []
-blood_sugar_data = []
+citizens = []
+blood_sugar_records = []
 
 
 @app.get("/")
@@ -38,45 +25,57 @@ def read_item(item_id: int, q: Union[str, None] = None):
     redis_client.set(item_id, q)
     return {"item_id": item_id, "q": q}
 
+
+@app.get("/allcitizens/")
+async def all_citizens():
+    return citizens
+
+
 # 建立一般民眾的基本資料
+@app.post("/citizens/", response_model=Citizen)
+async def create_citizen(citizen: Citizen):
+    # 檢查是否已經存在具有相同姓名和電話號碼的用戶
+    existing_citizen = next((existing_citizen for existing_citizen in citizens if existing_citizen.name ==
+                            citizen.name and existing_citizen.phone == citizen.phone), None)
 
+    # 如果存在，返回錯誤消息
+    if existing_citizen is not None:
+        raise HTTPException(
+            status_code=400, detail="Citizen with the same name and phone number already exists")
 
-@app.post("/users/")
-async def create_user(user: UserInfo):
-    user.id = str(uuid4())  # 使用uuid生成唯一id
-    user_data.append(user)
-    return {"message": "User created successfully", "user_id": user.id}
+    # 如果不存在建立
+    citizen.id = str(uuid4())  # 使用uuid生成唯一id
+    citizens.append(citizen)
+
+    return citizen
+
 
 # 輸入一般民眾的血糖數值及測量時間
 
 
-@app.post("/blood_sugar_records/")
+@app.post("/blood_sugar_records/", response_model=BloodSugarRecord)
 async def create_blood_sugar_record(record: BloodSugarRecord):
-    blood_sugar_data.append(record)
-    return {"message": "Blood sugar record created successfully"}
+    for citizen in citizens:
+        if citizen.id == record.citizen_id:
+            record.citizen = citizen
+            blood_sugar_records.append(record)
+            return record
 
-# 透過電話、姓名、line ID查詢一般民眾的血糖數值及測量時間
+    return {"error": "Citizen not found"}
 
-
-@app.get("/blood_sugar_records/", response_model=List[BloodSugarRecord])
-async def get_blood_sugar_records(name: Optional[str] = None, phone: Optional[str] = None, line_id: Optional[str] = None):
-    if name is not None:
-        user = next((user for user in user_data if user.name == name), None)
-    elif phone is not None:
-        user = next((user for user in user_data if user.phone == phone), None)
-    elif line_id is not None:
-        user = next(
-            (user for user in user_data if user.line_id == line_id), None)
-    else:
-        return []
-
-    if user is None:
-        return []
-    return [record for record in blood_sugar_data if record.user_id == user.id]
-
-# 顯示一般民眾的血糖數值及測量時間
+# 根據姓名或電話號碼模糊搜索用戶資料
 
 
-@app.get("/blood_sugar_records/{user_id}/", response_model=List[BloodSugarRecord])
-async def get_user_blood_sugar_records(user_id: str):
-    return [record for record in blood_sugar_data if record.user_id == user_id]
+@app.post("/search_blood_sugar_records/", response_model=List[BloodSugarRecord])
+async def search_blood_sugar_records(search: BloodSugarSearch):
+    results = []
+
+    for record in blood_sugar_records:
+        if search.phone and search.phone in record.citizen.phone:
+            results.append(record)
+        elif search.name and search.name in record.citizen.name:
+            results.append(record)
+        elif search.birthdate and search.birthdate == record.citizen.birthdate:
+            results.append(record)
+
+    return results

@@ -1,20 +1,19 @@
 version: "3.9"
 
 services:
-  fastapi:
+  back_fastapi:
     build:
     # use the current directory as the build context  
-      context: .
+      context: ./app
       args:
         - DEV=true
+    #command: uvicorn app.demo:app --host 0.0.0.0 --port 8040 --reload
     ports:
       - 8040:8040
     volumes:
-      - ./app:/app
+      - ./app:/code
       #- dev-static-data:/vol/web
-
-    # command: >
-    #    "uvicorn demo:app --reload"
+    
     environment:
       - DB_HOST=db
       - DB_NAME=devdb
@@ -28,4 +27,15 @@ services:
   redis:
     image: redis:latest
     
+
+  web:
+    build:
+      context: ./api-routes-app
+    volumes:
+      - ./api-routes-app:/app
+    command: npm run dev
+    ports:
+      - "3080:3000"
+    environment:
+      NODE_ENV: development
 
