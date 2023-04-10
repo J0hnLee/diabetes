@@ -17,6 +17,7 @@ export default function Index() {
         <PersonComponent key={p.id} person={p} />
       ))}
       <p>dddd</p>
+      <p>hell</p>
     </ul>
   )
 }
