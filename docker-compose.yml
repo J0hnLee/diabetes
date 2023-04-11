@@ -39,3 +39,14 @@ services:
     environment:
       NODE_ENV: development
 
+
+  diabetes_ui:
+      build:
+        context: ./diabetes_ui
+      volumes:
+        - ./diabetes_ui:/app
+      command: npm run dev
+      ports:
+        - "3030:3000"
+      environment:
+        NODE_ENV: development
