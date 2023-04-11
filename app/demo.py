@@ -1,7 +1,7 @@
 from typing import Union
 from fastapi import FastAPI, HTTPException
 import redis
-from pydantic import BaseModel
+
 from typing import Optional, List
 from uuid import uuid4
 from typing import List
@@ -52,7 +52,6 @@ async def create_citizen(citizen: Citizen):
 
 # 輸入一般民眾的血糖數值及測量時間
 
-
 @app.post("/blood_sugar_records/", response_model=BloodSugarRecord)
 async def create_blood_sugar_record(record: BloodSugarRecord):
     for citizen in citizens:
@@ -64,8 +63,6 @@ async def create_blood_sugar_record(record: BloodSugarRecord):
     return {"error": "Citizen not found"}
 
 # 根據姓名或電話號碼模糊搜索用戶資料
-
-
 @app.post("/search_blood_sugar_records/", response_model=List[BloodSugarRecord])
 async def search_blood_sugar_records(search: BloodSugarSearch):
     results = []
